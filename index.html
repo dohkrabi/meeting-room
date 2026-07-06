@@ -151,6 +151,33 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
 .login-error{font-size:13px;color:var(--danger);margin-top:10px;min-height:20px}
 .login-footer{font-size:12px;color:var(--text-3);margin-top:20px}
+/* ── Action Modal (แก้ไข/ยกเลิก/ลบ) ── */
+.action-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;display:none;align-items:center;justify-content:center;padding:24px}
+.action-overlay.open{display:flex}
+.action-box{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.action-box-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.action-box-sub{font-size:13px;color:var(--text-3);margin-bottom:20px;padding-left:26px}
+.action-pin-wrap{position:relative;margin-bottom:12px}
+.action-pin{width:100%;padding:11px 44px 11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:"Sarabun",sans-serif;color:var(--text);outline:none;transition:border .15s;letter-spacing:.1em}
+.action-pin:focus{border-color:var(--brand)}
+.action-pin.error{border-color:var(--danger);animation:shake .3s}
+.action-pin-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px}
+.action-confirm-btn{width:100%;padding:12px;font-size:14px;font-weight:600;font-family:"Sarabun",sans-serif;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s}
+.action-confirm-btn:hover{opacity:.9}
+.action-confirm-btn:disabled{opacity:.5;cursor:not-allowed}
+.action-cancel-link{display:block;text-align:center;font-size:13px;color:var(--text-3);cursor:pointer;margin-top:12px;border:none;background:none;font-family:"Sarabun",sans-serif;width:100%}
+.action-error{font-size:13px;color:var(--danger);margin:8px 0 0;min-height:18px}
+/* ── Edit form inside action modal ── */
+.edit-form{display:none;margin-top:16px;border-top:.5px solid var(--border);padding-top:16px}
+.edit-form.show{display:block}
+.ef-row{display:flex;gap:10px;margin-bottom:10px}
+.ef-col{flex:1;display:flex;flex-direction:column;gap:4px}
+.ef-label{font-size:12px;font-weight:500;color:var(--text-2)}
+.ef-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:"Sarabun",sans-serif;color:var(--text);outline:none;transition:border .15s}
+.ef-input:focus{border-color:var(--brand)}
+.ef-save-btn{width:100%;padding:11px;background:var(--brand);color:#fff;font-size:14px;font-weight:600;font-family:"Sarabun",sans-serif;border:none;border-radius:10px;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px}
+.ef-save-btn:hover{opacity:.9}
+.ef-msg{font-size:13px;text-align:center;margin-top:8px;min-height:18px}
 </style>
 </head>
 <body>
@@ -391,6 +418,7 @@ function renderList() {
     const d   = new Date(b.date);
     const day = d.getDate();
     const mon = TH_MONTHS_S[d.getMonth()];
+    const bj = JSON.stringify(b).replace(/'/g,"&#39;");
     return `<div class="booking-item">
       <div class="booking-date-box">
         <div class="booking-date-day">${day}</div>
@@ -405,6 +433,17 @@ function renderList() {
           ${b.use_zoom ? `<div class="booking-meta-item" style="color:#2D8CFF"><i class="ti ti-brand-zoom" style="font-size:12px"></i>Zoom</div>` : ''}
         </div>
         <span class="booking-badge ${b.status==='ชนกัน'?'badge-conflict':'badge-booked'}">${b.status||'จอง'}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        <button class="mtg-action-btn" title="แก้ไข" onclick='openAction("edit",${bj})'
+          style="background:#fff;border:.5px solid #E7E5E4;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#57534E;font-size:15px">
+          <i class="ti ti-pencil"></i></button>
+        <button class="mtg-action-btn" title="ยกเลิก" onclick='openAction("cancel",${bj})'
+          style="background:#fff;border:.5px solid #E7E5E4;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#57534E;font-size:15px">
+          <i class="ti ti-x"></i></button>
+        <button class="mtg-action-btn" title="ลบ" onclick='openAction("delete",${bj})'
+          style="background:#fff;border:.5px solid #E7E5E4;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#EF4444;font-size:15px">
+          <i class="ti ti-trash"></i></button>
       </div>
     </div>`;
   }).join('');
@@ -475,7 +514,264 @@ function togglePwd() {
 }
 
 load();
+
+// ── Action Modal (แก้ไข/ยกเลิก/ลบ) ──
+const GAS_URL_ROOM = 'https://script.google.com/macros/s/AKfycbxJPCHLd3nzgbo4dyi6yu_lTNoPMOrqFtk5CnVkbRrfWHnP8x_n0hlgaPKnRJGn56La/exec';
+let currentAction = null; // 'edit'|'cancel'|'delete'
+let currentBooking = null;
+
+const ACTION_CFG = {
+  edit:   { icon:'ti-pencil',  color:'#534AB7', label:'แก้ไขการจอง',   btn:'แก้ไข', btnColor:'#534AB7' },
+  cancel: { icon:'ti-x',       color:'#DC8F1B', label:'ยกเลิกการจอง',  btn:'ยืนยันยกเลิก', btnColor:'#DC8F1B' },
+  delete: { icon:'ti-trash',   color:'#DC3545', label:'ลบการจอง',       btn:'ลบถาวร', btnColor:'#DC3545' },
+};
+
+function openAction(action, booking) {
+  currentAction  = action;
+  currentBooking = booking;
+  const cfg = ACTION_CFG[action];
+
+  document.getElementById('action-title').innerHTML =
+    `<i class="ti ${cfg.icon}" style="color:${cfg.color}"></i> ${cfg.label}`;
+  document.getElementById('action-sub').textContent =
+    `📋 ${booking.topic} · ${booking.date} · ${booking.time_start}–${booking.time_end} น.`;
+  document.getElementById('action-pin').value = '';
+  document.getElementById('action-error').textContent = '';
+  document.getElementById('edit-form').classList.remove('show');
+
+  const btn = document.getElementById('action-confirm-btn');
+  btn.textContent = cfg.btn;
+  btn.style.background = cfg.btnColor;
+  btn.style.color = '#fff';
+  btn.disabled = false;
+
+  document.getElementById('action-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('action-pin').focus(), 100);
+}
+function closeAction() {
+  document.getElementById('action-overlay').classList.remove('open');
+  currentAction = null; currentBooking = null;
+}
+function closeActionIfOutside(e) {
+  if (e.target === document.getElementById('action-overlay')) closeAction();
+}
+function toggleActionPwd() {
+  const inp  = document.getElementById('action-pin');
+  const icon = document.getElementById('action-eye');
+  if (inp.type === 'password') { inp.type = 'text'; icon.className = 'ti ti-eye-off'; }
+  else { inp.type = 'password'; icon.className = 'ti ti-eye'; }
+}
+
+async function confirmAction() {
+  const pin = document.getElementById('action-pin').value;
+  const err = document.getElementById('action-error');
+  const btn = document.getElementById('action-confirm-btn');
+
+  if (!pin) { err.textContent = 'กรุณากรอกรหัสผ่าน'; return; }
+  if (hashStr(pin) !== CORRECT_HASH) {
+    err.textContent = 'รหัสผ่านไม่ถูกต้อง';
+    document.getElementById('action-pin').value = '';
+    document.getElementById('action-pin').classList.add('error');
+    setTimeout(() => document.getElementById('action-pin').classList.remove('error'), 400);
+    return;
+  }
+
+  // ผ่าน login แล้ว
+  err.textContent = '';
+  document.querySelector('.action-pin-wrap').style.display = 'none';
+
+  if (currentAction === 'edit') {
+    // แสดงฟอร์มแก้ไข
+    const b = currentBooking;
+    document.getElementById('ef-topic').value     = b.topic      || '';
+    document.getElementById('ef-date').value      = b.date       || '';
+    document.getElementById('ef-start').value     = b.time_start || '';
+    document.getElementById('ef-end').value       = b.time_end   || '';
+    document.getElementById('ef-name').value      = b.name       || '';
+    document.getElementById('ef-dept').value      = b.dept       || '';
+    document.getElementById('ef-attendees').value = b.attendees  || '';
+    document.getElementById('ef-equipment').value = b.equipment  || '';
+    document.getElementById('ef-zoom').checked    = !!b.use_zoom;
+    document.getElementById('ef-zoomurl').value   = b.zoom_url   || '';
+    document.getElementById('ef-passcode').value  = b.passcode   || '';
+    document.getElementById('ef-note').value      = b.note       || '';
+    document.getElementById('ef-msg').textContent = '';
+    document.getElementById('edit-form').classList.add('show');
+    btn.style.display = 'none';
+  } else {
+    // ยกเลิก หรือ ลบ
+    btn.disabled = true;
+    btn.textContent = 'กำลังดำเนินการ...';
+    try {
+      const r = await fetch(GAS_URL_ROOM, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: currentAction === 'cancel' ? 'cancel' : 'delete', row: currentBooking.row })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        closeAction();
+        await load();
+        renderCal();
+        renderList();
+      } else {
+        err.textContent = d.error || 'ดำเนินการไม่สำเร็จ';
+        btn.disabled = false;
+        btn.textContent = ACTION_CFG[currentAction].btn;
+      }
+    } catch(e) {
+      err.textContent = 'เชื่อมต่อไม่ได้ กรุณาลองใหม่';
+      btn.disabled = false;
+      btn.textContent = ACTION_CFG[currentAction].btn;
+    }
+  }
+}
+
+async function saveEdit() {
+  const b       = currentBooking;
+  const saveBtn = document.querySelector('.ef-save-btn');
+  const msg     = document.getElementById('ef-msg');
+
+  const payload = {
+    action:     'update',
+    row:        b.row,
+    topic:      document.getElementById('ef-topic').value.trim(),
+    date:       document.getElementById('ef-date').value,
+    time_start: document.getElementById('ef-start').value,
+    time_end:   document.getElementById('ef-end').value,
+    name:       document.getElementById('ef-name').value.trim(),
+    dept:       document.getElementById('ef-dept').value.trim(),
+    attendees:  document.getElementById('ef-attendees').value,
+    equipment:  document.getElementById('ef-equipment').value.trim(),
+    use_zoom:   document.getElementById('ef-zoom').checked,
+    zoom_url:   document.getElementById('ef-zoomurl').value.trim(),
+    passcode:   document.getElementById('ef-passcode').value.trim(),
+    note:       document.getElementById('ef-note').value.trim(),
+  };
+
+  if (!payload.topic || !payload.date || !payload.time_start || !payload.time_end) {
+    msg.style.color = '#DC3545';
+    msg.textContent = 'กรุณากรอกข้อมูลที่จำเป็นให้ครบ';
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<i class="ti ti-loader" style="animation:spin .7s linear infinite"></i> กำลังบันทึก...';
+  msg.textContent = '';
+
+  try {
+    const r = await fetch(GAS_URL_ROOM, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (d.ok) {
+      msg.style.color = '#1D9E75';
+      msg.textContent = 'บันทึกเรียบร้อยแล้ว';
+      await load(); renderCal(); renderList();
+      setTimeout(closeAction, 800);
+    } else {
+      msg.style.color = '#DC3545';
+      msg.textContent = d.error || 'บันทึกไม่สำเร็จ';
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="ti ti-device-floppy"></i> บันทึกการแก้ไข';
+    }
+  } catch(e) {
+    msg.style.color = '#DC3545';
+    msg.textContent = 'เชื่อมต่อไม่ได้';
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="ti ti-device-floppy"></i> บันทึกการแก้ไข';
+  }
+}
 setInterval(load, 5 * 60 * 1000);
 </script>
+
+<!-- Action Modal (แก้ไข/ยกเลิก/ลบ) -->
+<div class="action-overlay" id="action-overlay" onclick="closeActionIfOutside(event)">
+  <div class="action-box">
+    <div class="action-box-title" id="action-title"></div>
+    <div class="action-box-sub" id="action-sub"></div>
+    <div class="action-pin-wrap">
+      <input type="password" id="action-pin" class="action-pin"
+             placeholder="รหัสผ่าน"
+             onkeydown="if(event.key==='Enter')confirmAction()"
+             autocomplete="off">
+      <button class="action-pin-eye" onclick="toggleActionPwd()" tabindex="-1">
+        <i class="ti ti-eye" id="action-eye"></i>
+      </button>
+    </div>
+    <div class="action-error" id="action-error"></div>
+    <button class="action-confirm-btn" id="action-confirm-btn" onclick="confirmAction()"></button>
+    <!-- Edit form (แสดงหลัง login ผ่าน) -->
+    <div class="edit-form" id="edit-form">
+      <div class="ef-row">
+        <div class="ef-col" style="flex:2">
+          <label class="ef-label">หัวข้อการประชุม</label>
+          <input type="text" id="ef-topic" class="ef-input">
+        </div>
+      </div>
+      <div class="ef-row">
+        <div class="ef-col">
+          <label class="ef-label">วันที่</label>
+          <input type="date" id="ef-date" class="ef-input">
+        </div>
+        <div class="ef-col">
+          <label class="ef-label">เวลาเริ่ม</label>
+          <input type="time" id="ef-start" class="ef-input">
+        </div>
+        <div class="ef-col">
+          <label class="ef-label">เวลาสิ้นสุด</label>
+          <input type="time" id="ef-end" class="ef-input">
+        </div>
+      </div>
+      <div class="ef-row">
+        <div class="ef-col">
+          <label class="ef-label">ชื่อผู้จอง</label>
+          <input type="text" id="ef-name" class="ef-input">
+        </div>
+        <div class="ef-col">
+          <label class="ef-label">หน่วย/ฝ่าย</label>
+          <input type="text" id="ef-dept" class="ef-input">
+        </div>
+      </div>
+      <div class="ef-row">
+        <div class="ef-col">
+          <label class="ef-label">จำนวนผู้เข้าร่วม</label>
+          <input type="number" id="ef-attendees" class="ef-input" min="1">
+        </div>
+        <div class="ef-col" style="flex:2">
+          <label class="ef-label">อุปกรณ์</label>
+          <input type="text" id="ef-equipment" class="ef-input">
+        </div>
+      </div>
+      <div style="margin-bottom:10px;font-size:13px;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="ef-zoom" style="width:15px;height:15px">
+        <label for="ef-zoom">ใช้ Zoom</label>
+      </div>
+      <div class="ef-row">
+        <div class="ef-col" style="flex:2">
+          <label class="ef-label">ลิงก์ Zoom</label>
+          <input type="text" id="ef-zoomurl" class="ef-input" placeholder="https://zoom.us/j/...">
+        </div>
+        <div class="ef-col">
+          <label class="ef-label">Passcode</label>
+          <input type="text" id="ef-passcode" class="ef-input">
+        </div>
+      </div>
+      <div class="ef-row">
+        <div class="ef-col">
+          <label class="ef-label">หมายเหตุ</label>
+          <input type="text" id="ef-note" class="ef-input">
+        </div>
+      </div>
+      <button class="ef-save-btn" onclick="saveEdit()">
+        <i class="ti ti-device-floppy"></i> บันทึกการแก้ไข
+      </button>
+      <div class="ef-msg" id="ef-msg"></div>
+    </div>
+    <button class="action-cancel-link" onclick="closeAction()">ยกเลิก</button>
+  </div>
+</div>
 </body>
 </html>
