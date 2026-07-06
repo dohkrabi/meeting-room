@@ -134,7 +134,8 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Login Screen ── */
-.login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-mid) 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center;padding:24px}
+.login-overlay.open{display:flex}
 .login-box{background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .login-logo{width:56px;height:56px;background:var(--brand-light);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;color:var(--brand)}
 .login-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px}
@@ -154,12 +155,12 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
 </head>
 <body>
 
-<!-- Login Screen -->
-<div class="login-overlay" id="login-overlay">
+<!-- Login Modal -->
+<div class="login-overlay" id="login-overlay" onclick="closeLoginIfOutside(event)">
   <div class="login-box">
-    <div class="login-logo"><i class="ti ti-door"></i></div>
-    <div class="login-title">ระบบจองห้องประชุม</div>
-    <div class="login-sub">ห้องประชุม แขวงทางหลวงกระบี่ ชั้น 3<br>กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</div>
+    <div class="login-logo"><i class="ti ti-lock"></i></div>
+    <div class="login-title">ยืนยันตัวตนก่อนจอง</div>
+    <div class="login-sub">กรุณากรอกรหัสผ่านเพื่อเข้าถึง<br>แบบฟอร์มจองห้องประชุม</div>
     <div class="login-input-wrap">
       <input type="password" id="login-input" class="login-input"
              placeholder="รหัสผ่าน"
@@ -170,9 +171,10 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
       </button>
     </div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">
-      <i class="ti ti-login"></i> เข้าสู่ระบบ
+      <i class="ti ti-login"></i> ยืนยันและเปิดแบบฟอร์ม
     </button>
     <div class="login-error" id="login-error"></div>
+    <button onclick="closeLogin()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-3);margin-top:14px;font-family:'Sarabun',sans-serif">ยกเลิก</button>
     <div class="login-footer">แขวงทางหลวงกระบี่ · กรมทางหลวง</div>
   </div>
 </div>
@@ -184,10 +186,9 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
       <div class="header-sub">แขวงทางหลวงกระบี่ · กรมทางหลวง</div>
     </div>
   </div>
-  <a href="https://docs.google.com/forms/d/e/1FAIpQLSeDBj9ZinOH4WDI0ExttDNgTZ4V9nyUVlhLLubcQB6pEK9OyQ/viewform?usp=header"
-     target="_blank" class="btn-book">
+  <button onclick="openLogin()" class="btn-book">
     <i class="ti ti-plus" style="font-size:14px"></i> จองเดี๋ยวนี้
-  </a>
+  </button>
 </header>
 
 <!-- Hero -->
@@ -242,10 +243,9 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
   <div class="cta-section">
     <div class="cta-title">ต้องการใช้ห้องประชุม?</div>
     <div class="cta-sub">กรอกแบบฟอร์มออนไลน์ ระบบจะแจ้งยืนยันผ่าน LINE กลุ่มงานทันที</div>
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLSeDBj9ZinOH4WDI0ExttDNgTZ4V9nyUVlhLLubcQB6pEK9OyQ/viewform?usp=header"
-       target="_blank" class="cta-btn">
+    <button onclick="openLogin()" class="cta-btn" style="border:none;cursor:pointer">
       <i class="ti ti-calendar-plus"></i> กรอกแบบฟอร์มจอง
-    </a>
+    </button>
   </div>
 
 </div>
@@ -410,20 +410,31 @@ function renderList() {
   }).join('');
 }
 
-// ── Login ──
-const PASS_HASH = '7a08e5b8c9f2d4e1a3b6c8d0f2e4a6b8'; // hash ของ meet@343
+const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeDBj9ZinOH4WDI0ExttDNgTZ4V9nyUVlhLLubcQB6pEK9OyQ/viewform?usp=header';
 
 function hashStr(s) {
-  // Simple hash สำหรับ client-side check
   let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = Math.imul(31, h) + s.charCodeAt(i) | 0;
-  }
+  for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
   return Math.abs(h).toString(16).padStart(8,'0');
 }
-
-// hash จริงของ meet@343 คำนวณตอน runtime
 const CORRECT_HASH = hashStr('meet@343');
+
+function openLogin() {
+  const el = document.getElementById('login-overlay');
+  el.classList.add('open');
+  document.getElementById('login-input').value = '';
+  document.getElementById('login-error').textContent = '';
+  const btn = document.getElementById('login-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-login"></i> ยืนยันและเปิดแบบฟอร์ม';
+  setTimeout(() => document.getElementById('login-input').focus(), 100);
+}
+function closeLogin() {
+  document.getElementById('login-overlay').classList.remove('open');
+}
+function closeLoginIfOutside(e) {
+  if (e.target === document.getElementById('login-overlay')) closeLogin();
+}
 
 function doLogin() {
   const input = document.getElementById('login-input');
@@ -437,15 +448,13 @@ function doLogin() {
     setTimeout(() => input.classList.remove('error'), 400);
     return;
   }
-
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader" style="animation:spin .7s linear infinite"></i> กำลังตรวจสอบ...';
 
   setTimeout(() => {
     if (hashStr(val) === CORRECT_HASH) {
-      // ผ่าน — ซ่อนหน้า login
-      document.getElementById('login-overlay').style.display = 'none';
-      load(); // โหลดข้อมูล
+      closeLogin();
+      window.open(FORM_URL, '_blank');
     } else {
       errEl.textContent = 'รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่';
       input.value = '';
@@ -453,30 +462,20 @@ function doLogin() {
       input.focus();
       setTimeout(() => input.classList.remove('error'), 400);
       btn.disabled = false;
-      btn.innerHTML = '<i class="ti ti-login"></i> เข้าสู่ระบบ';
+      btn.innerHTML = '<i class="ti ti-login"></i> ยืนยันและเปิดแบบฟอร์ม';
     }
-  }, 600);
+  }, 500);
 }
 
 function togglePwd() {
   const input = document.getElementById('login-input');
   const icon  = document.getElementById('eye-icon');
-  if (input.type === 'password') {
-    input.type = 'text';
-    icon.className = 'ti ti-eye-off';
-  } else {
-    input.type = 'password';
-    icon.className = 'ti ti-eye';
-  }
+  if (input.type === 'password') { input.type = 'text'; icon.className = 'ti ti-eye-off'; }
+  else { input.type = 'password'; icon.className = 'ti ti-eye'; }
 }
 
-// Focus input อัตโนมัติ
-window.onload = () => document.getElementById('login-input').focus();
-
-// refresh ทุก 5 นาที หลัง login แล้ว
-setInterval(() => {
-  if (document.getElementById('login-overlay').style.display === 'none') load();
-}, 5 * 60 * 1000);
+load();
+setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
