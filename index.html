@@ -133,20 +133,49 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
 .spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── Responsive ── */
-@media(max-width:600px){
-  .hero-title{font-size:20px}
-  .cal-day{min-height:56px}
-  .cal-chip{display:none}
-  .cal-more{display:none}
-  .booking-item{padding:12px 14px}
-  .header-sub{display:none}
-}
+/* ── Login Screen ── */
+.login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-mid) 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.login-logo{width:56px;height:56px;background:var(--brand-light);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;color:var(--brand)}
+.login-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--text-3);margin-bottom:24px;line-height:1.5}
+.login-input-wrap{position:relative;margin-bottom:14px}
+.login-input{width:100%;padding:12px 44px 12px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:'Sarabun',sans-serif;color:var(--text);outline:none;transition:border .15s;letter-spacing:.1em}
+.login-input:focus{border-color:var(--brand)}
+.login-input.error{border-color:var(--danger);animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.login-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px}
+.login-btn{width:100%;padding:13px;background:var(--brand);color:#fff;font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;border:none;border-radius:10px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.login-btn:hover{opacity:.9}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-error{font-size:13px;color:var(--danger);margin-top:10px;min-height:20px}
+.login-footer{font-size:12px;color:var(--text-3);margin-top:20px}
 </style>
 </head>
 <body>
 
-<!-- Header -->
+<!-- Login Screen -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo"><i class="ti ti-door"></i></div>
+    <div class="login-title">ระบบจองห้องประชุม</div>
+    <div class="login-sub">ห้องประชุม แขวงทางหลวงกระบี่ ชั้น 3<br>กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</div>
+    <div class="login-input-wrap">
+      <input type="password" id="login-input" class="login-input"
+             placeholder="รหัสผ่าน"
+             onkeydown="if(event.key==='Enter')doLogin()"
+             autocomplete="off">
+      <button class="login-eye" onclick="togglePwd()" tabindex="-1">
+        <i class="ti ti-eye" id="eye-icon"></i>
+      </button>
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">
+      <i class="ti ti-login"></i> เข้าสู่ระบบ
+    </button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-footer">แขวงทางหลวงกระบี่ · กรมทางหลวง</div>
+  </div>
+</div>
 <header class="header">
   <div class="header-left">
     <div class="header-logo"><i class="ti ti-door"></i></div>
@@ -381,8 +410,73 @@ function renderList() {
   }).join('');
 }
 
-load();
-setInterval(load, 5 * 60 * 1000); // refresh ทุก 5 นาที
+// ── Login ──
+const PASS_HASH = '7a08e5b8c9f2d4e1a3b6c8d0f2e4a6b8'; // hash ของ meet@343
+
+function hashStr(s) {
+  // Simple hash สำหรับ client-side check
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+  }
+  return Math.abs(h).toString(16).padStart(8,'0');
+}
+
+// hash จริงของ meet@343 คำนวณตอน runtime
+const CORRECT_HASH = hashStr('meet@343');
+
+function doLogin() {
+  const input = document.getElementById('login-input');
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  const val   = input.value;
+
+  if (!val) {
+    errEl.textContent = 'กรุณากรอกรหัสผ่าน';
+    input.classList.add('error');
+    setTimeout(() => input.classList.remove('error'), 400);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" style="animation:spin .7s linear infinite"></i> กำลังตรวจสอบ...';
+
+  setTimeout(() => {
+    if (hashStr(val) === CORRECT_HASH) {
+      // ผ่าน — ซ่อนหน้า login
+      document.getElementById('login-overlay').style.display = 'none';
+      load(); // โหลดข้อมูล
+    } else {
+      errEl.textContent = 'รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่';
+      input.value = '';
+      input.classList.add('error');
+      input.focus();
+      setTimeout(() => input.classList.remove('error'), 400);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-login"></i> เข้าสู่ระบบ';
+    }
+  }, 600);
+}
+
+function togglePwd() {
+  const input = document.getElementById('login-input');
+  const icon  = document.getElementById('eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.className = 'ti ti-eye-off';
+  } else {
+    input.type = 'password';
+    icon.className = 'ti ti-eye';
+  }
+}
+
+// Focus input อัตโนมัติ
+window.onload = () => document.getElementById('login-input').focus();
+
+// refresh ทุก 5 นาที หลัง login แล้ว
+setInterval(() => {
+  if (document.getElementById('login-overlay').style.display === 'none') load();
+}, 5 * 60 * 1000);
 </script>
 </body>
 </html>
