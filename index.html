@@ -72,6 +72,13 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
 .cal-day-num{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
 .cal-day.today .cal-day-num{color:var(--brand);font-weight:700}
 .cal-day.weekend .cal-day-num{color:var(--text-3)}
+.cal-dots-wrap{display:none}
+.cal-chips-wrap{display:block}
+.cal-dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+.cal-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cal-dot.booked{background:#534AB7}
+.cal-dot.conflict{background:#DC2626}
+.cal-dot.cancelled{background:#A8A29E}
 .cal-chip{font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:2px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:.5px solid}
 .cal-chip.booked{background:#EDE9FE;color:#534AB7;border-color:#C4B5FD}
 .cal-chip.conflict{background:#FEE2E2;color:#DC2626;border-color:#FCA5A5}
@@ -195,6 +202,8 @@ html,body{height:100%;font-family:'Sarabun',sans-serif;background:var(--bg);colo
   .cal-day-num{font-size:12px}
   .cal-chip{display:none}
   .cal-more{display:none}
+  .cal-chips-wrap{display:none}
+  .cal-dots-wrap{display:block}
   .cal-weekdays div{font-size:11px}
   .cal-month{font-size:15px}
   .legend{gap:10px;font-size:11px}
@@ -385,9 +394,18 @@ function renderCal() {
     }).join('');
     const more = dayBooks.length > 2 ? `<div class="cal-more">+${dayBooks.length-2}</div>` : '';
 
+    // จุดสีสำหรับมือถือ (แสดงเสมอ ซ่อนด้วย CSS บนจอใหญ่)
+    const dots = dayBooks.length > 0 ? `<div class="cal-dots">${
+      dayBooks.slice(0,4).map(b => {
+        const dc = b.status==='ชนกัน' ? 'conflict' : b.status==='ยกเลิก' ? 'cancelled' : 'booked';
+        return `<div class="cal-dot ${dc}"></div>`;
+      }).join('')
+    }${dayBooks.length > 4 ? '<div class="cal-dot booked" style="opacity:.4"></div>' : ''}</div>` : '';
+
     html += `<div class="${cls}" onclick="showDay('${ds}')">
       <div class="cal-day-num">${d}</div>
-      ${chips}${more}
+      <div class="cal-chips-wrap">${chips}${more}</div>
+      <div class="cal-dots-wrap">${dots}</div>
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
