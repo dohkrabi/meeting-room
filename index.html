@@ -390,7 +390,7 @@ function renderCal() {
 
     const chips = dayBooks.slice(0,2).map(b => {
       const chipCls = b.status === 'ชนกัน' ? 'conflict' : 'booked';
-      return `<div class="cal-chip ${chipCls}">${b.time_start} ${b.dept||''}</div>`;
+      return `<div class="cal-chip ${chipCls}">${b.time_start} ${b.topic||b.dept||''}</div>`;
     }).join('');
     const more = dayBooks.length > 2 ? `<div class="cal-more">+${dayBooks.length-2}</div>` : '';
 
