@@ -404,9 +404,19 @@ let calMonth = new Date().getMonth();
 
 async function load() {
   try {
+    // แสดง cache ก่อนถ้ายังไม่มีข้อมูล (ลดความหน่วง)
+    const cached = sessionStorage.getItem('room_bookings');
+    if (cached && bookings.length === 0) {
+      bookings = JSON.parse(cached);
+      renderCal(); renderList();
+    }
+    // ดึงข้อมูลใหม่
     const r = await fetch(GAS_URL + '?t=' + Date.now());
     const d = await r.json();
-    bookings = d.ok ? (d.data || []) : [];
+    if (d.ok) {
+      bookings = d.data || [];
+      sessionStorage.setItem('room_bookings', JSON.stringify(bookings));
+    }
   } catch(e) { bookings = []; }
   renderCal();
   renderList();
@@ -843,7 +853,24 @@ setInterval(load, 5 * 60 * 1000);
         </div>
         <div class="ef-col">
           <label class="ef-label">หน่วย/ฝ่าย</label>
-          <input type="text" id="ef-dept" class="ef-input">
+          <select id="ef-dept" class="ef-input" style="background:#fff">
+              <option value="">-- เลือก --</option>
+              <option>งานสารบรรณ</option>
+              <option>งานพัสดุและสัญญา</option>
+              <option>งานสารสนเทศ</option>
+              <option>งานการเงินและบัญชี</option>
+              <option>งานแผนงาน</option>
+              <option>งานควบคุมงาน</option>
+              <option>งานไฟฟ้า</option>
+              <option>งานปรับซ่อม</option>
+              <option>งานอำนวยความปลอดภัย</option>
+              <option>หมวดทางหลวงอ่าวนาง</option>
+              <option>หมวดทางหลวงอาวุโสกระบี่</option>
+              <option>หมวดทางหลวงเขาพนม</option>
+              <option>หมวดทางหลวงคลองท่อม</option>
+              <option>หมวดทางหลวงห้วยน้ำขาว</option>
+              <option>หมวดทางหลวงทรายขาว</option>
+            </select>
         </div>
       </div>
       <div class="ef-row">
@@ -907,14 +934,21 @@ setInterval(load, 5 * 60 * 1000);
             <label class="bf-label">หน่วย/ฝ่าย <span>*</span></label>
             <select id="bf-dept" class="bf-select">
               <option value="">-- เลือก --</option>
-              <option>งานอำนวยการ</option>
-              <option>งานวางแผน</option>
-              <option>งานบำรุงทาง</option>
-              <option>งานไฟฟ้า</option>
-              <option>งานสะพาน</option>
-              <option>งานควบคุมงาน</option>
+              <option>งานสารบรรณ</option>
+              <option>งานพัสดุและสัญญา</option>
               <option>งานสารสนเทศ</option>
-              <option>อื่นๆ</option>
+              <option>งานการเงินและบัญชี</option>
+              <option>งานแผนงาน</option>
+              <option>งานควบคุมงาน</option>
+              <option>งานไฟฟ้า</option>
+              <option>งานปรับซ่อม</option>
+              <option>งานอำนวยความปลอดภัย</option>
+              <option>หมวดทางหลวงอ่าวนาง</option>
+              <option>หมวดทางหลวงอาวุโสกระบี่</option>
+              <option>หมวดทางหลวงเขาพนม</option>
+              <option>หมวดทางหลวงคลองท่อม</option>
+              <option>หมวดทางหลวงห้วยน้ำขาว</option>
+              <option>หมวดทางหลวงทรายขาว</option>
             </select>
           </div>
         </div>
