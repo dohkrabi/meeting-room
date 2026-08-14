@@ -515,27 +515,26 @@ function closeDayModal(e) {
 // ── Upcoming list ──
 function renderList() {
   const now = new Date();
-  const upcoming = bookings
-    .filter(b => {
-      const dt = new Date(b.date + 'T' + (b.time_start||'00:00'));
-      return dt >= now && b.status !== 'ยกเลิก';
-    })
-    .sort((a,b) => (a.date+a.time_start).localeCompare(b.date+b.time_start))
-    .slice(0, 10);
+  const all = bookings
+    .filter(b => b.status !== 'ยกเลิก')
+    .sort((a,b) => (b.date+b.time_start).localeCompare(a.date+a.time_start)); // ล่าสุดก่อน
 
   const el = document.getElementById('booking-list');
-  if (!upcoming.length) {
+  if (!all.length) {
     el.innerHTML = `<div class="empty-state">
       <i class="ti ti-calendar-smile"></i>
-      <p>ยังไม่มีการจองที่กำลังจะมาถึง<br>ห้องว่างพร้อมใช้งาน</p>
+      <p>ยังไม่มีการจอง</p>
     </div>`;
     return;
   }
-  el.innerHTML = upcoming.map(b => {
+
+  const upcoming = all.filter(b => new Date(b.date+'T'+(b.time_start||'00:00')) >= now);
+  const past     = all.filter(b => new Date(b.date+'T'+(b.time_start||'00:00')) <  now);
+  const bookingItemHTML = (b) => {
     const d   = new Date(b.date);
     const day = d.getDate();
     const mon = TH_MONTHS_S[d.getMonth()];
-    const bj = JSON.stringify(b).replace(/'/g,"&#39;");
+    const bj  = JSON.stringify(b).replace(/'/g,"&#39;");
     return `<div class="booking-item">
       <div class="booking-date-box">
         <div class="booking-date-day">${day}</div>
@@ -563,7 +562,18 @@ function renderList() {
           <i class="ti ti-trash"></i></button>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  let html = '';
+  if (upcoming.length) {
+    html += `<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;padding:12px 20px 6px">กำลังจะมาถึง</div>`;
+    html += upcoming.sort((a,b)=>(a.date+a.time_start).localeCompare(b.date+b.time_start)).map(bookingItemHTML).join('');
+  }
+  if (past.length) {
+    html += `<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;padding:12px 20px 6px;margin-top:4px;border-top:.5px solid var(--border)">ผ่านมาแล้ว</div>`;
+    html += past.map(bookingItemHTML).join('');
+  }
+  el.innerHTML = html;
 }
 
 const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeDBj9ZinOH4WDI0ExttDNgTZ4V9nyUVlhLLubcQB6pEK9OyQ/viewform?usp=header';
