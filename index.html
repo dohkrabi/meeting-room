@@ -672,6 +672,14 @@ function openAction(action, booking) {
 function closeAction() {
   document.getElementById('action-overlay').classList.remove('open');
   currentAction = null; currentBooking = null;
+  // reset ทุกอย่างให้พร้อมใช้ใหม่ได้ทันที
+  document.getElementById('action-pin').value = '';
+  document.getElementById('action-error').textContent = '';
+  document.getElementById('edit-form').classList.remove('show');
+  document.querySelector('.action-pin-wrap').style.display = '';
+  const btn = document.getElementById('action-confirm-btn');
+  btn.disabled = false;
+  btn.style.display = '';
 }
 function closeActionIfOutside(e) {
   if (e.target === document.getElementById('action-overlay')) closeAction();
@@ -714,6 +722,7 @@ async function confirmAction() {
     document.getElementById('ef-equipment').value = b.equipment  || '';
     document.getElementById('ef-zoom').checked    = !!b.use_zoom;
     document.getElementById('ef-zoomurl').value   = b.zoom_url   || '';
+    document.getElementById('ef-meetid').value    = b.meeting_id || '';
     document.getElementById('ef-passcode').value  = b.passcode   || '';
     document.getElementById('ef-note').value      = b.note       || '';
     document.getElementById('ef-msg').textContent = '';
@@ -766,6 +775,7 @@ async function saveEdit() {
     equipment:  document.getElementById('ef-equipment').value.trim(),
     use_zoom:   document.getElementById('ef-zoom').checked,
     zoom_url:   document.getElementById('ef-zoomurl').value.trim(),
+    meeting_id: document.getElementById('ef-meetid').value.trim(),
     passcode:   document.getElementById('ef-passcode').value.trim(),
     note:       document.getElementById('ef-note').value.trim(),
   };
@@ -891,6 +901,10 @@ setInterval(load, 5 * 60 * 1000);
         <div class="ef-col" style="flex:2">
           <label class="ef-label">ลิงก์ Zoom</label>
           <input type="text" id="ef-zoomurl" class="ef-input" placeholder="https://zoom.us/j/...">
+        </div>
+        <div class="ef-col">
+          <label class="ef-label">Meeting ID</label>
+          <input type="text" id="ef-meetid" class="ef-input">
         </div>
         <div class="ef-col">
           <label class="ef-label">Passcode</label>
