@@ -672,14 +672,21 @@ function openAction(action, booking) {
 function closeAction() {
   document.getElementById('action-overlay').classList.remove('open');
   currentAction = null; currentBooking = null;
-  // reset ทุกอย่างให้พร้อมใช้ใหม่ได้ทันที
+  // reset ทุกอย่างให้พร้อมใช้ใหม่
   document.getElementById('action-pin').value = '';
   document.getElementById('action-error').textContent = '';
   document.getElementById('edit-form').classList.remove('show');
+  document.getElementById('ef-msg').textContent = '';
   document.querySelector('.action-pin-wrap').style.display = '';
-  const btn = document.getElementById('action-confirm-btn');
-  btn.disabled = false;
-  btn.style.display = '';
+  const confirmBtn = document.getElementById('action-confirm-btn');
+  confirmBtn.disabled = false;
+  confirmBtn.style.display = '';
+  // reset ef-save-btn
+  const saveBtn = document.querySelector('.ef-save-btn');
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="ti ti-device-floppy"></i> บันทึกการแก้ไข';
+  }
 }
 function closeActionIfOutside(e) {
   if (e.target === document.getElementById('action-overlay')) closeAction();
@@ -800,6 +807,8 @@ async function saveEdit() {
     if (d.ok) {
       msg.style.color = '#1D9E75';
       msg.textContent = 'บันทึกเรียบร้อยแล้ว';
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="ti ti-device-floppy"></i> บันทึกการแก้ไข';
       await load(); renderCal(); renderList();
       setTimeout(closeAction, 800);
     } else {
@@ -902,6 +911,8 @@ setInterval(load, 5 * 60 * 1000);
           <label class="ef-label">ลิงก์ Zoom</label>
           <input type="text" id="ef-zoomurl" class="ef-input" placeholder="https://zoom.us/j/...">
         </div>
+      </div>
+      <div class="ef-row">
         <div class="ef-col">
           <label class="ef-label">Meeting ID</label>
           <input type="text" id="ef-meetid" class="ef-input">
