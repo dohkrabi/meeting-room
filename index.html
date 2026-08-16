@@ -404,22 +404,38 @@ let calMonth = new Date().getMonth();
 
 async function load() {
   try {
-    // แสดง cache ก่อนถ้ายังไม่มีข้อมูล (ลดความหน่วง)
     const cached = sessionStorage.getItem('room_bookings');
     if (cached && bookings.length === 0) {
-      bookings = JSON.parse(cached);
+      bookings = JSON.parse(cached).map(normDate);
       renderCal(); renderList();
     }
-    // ดึงข้อมูลใหม่
     const r = await fetch(GAS_URL + '?t=' + Date.now());
     const d = await r.json();
     if (d.ok) {
-      bookings = d.data || [];
+      bookings = (d.data || []).map(normDate);
       sessionStorage.setItem('room_bookings', JSON.stringify(bookings));
     }
   } catch(e) { bookings = []; }
   renderCal();
   renderList();
+}
+
+// แปลงวันที่ทุกรูปแบบให้เป็น YYYY-MM-DD เพื่อให้ปฏิทิน match ได้
+function normDate(b) {
+  if (!b.date) return b;
+  const s = String(b.date).trim();
+  if (s.includes('/')) {
+    // D/M/YYYY หรือ M/D/YYYY — Sheets ไทยใช้ D/M/YYYY
+    const p = s.split('/').map(Number);
+    if (p[2] > 100) {
+      // D/M/YYYY
+      const yyyy = p[2];
+      const mm   = String(p[1]).padStart(2,'0');
+      const dd   = String(p[0]).padStart(2,'0');
+      return { ...b, date: `${yyyy}-${mm}-${dd}` };
+    }
+  }
+  return b; // YYYY-MM-DD อยู่แล้ว
 }
 
 // ── Calendar ──
