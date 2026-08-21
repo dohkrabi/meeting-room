@@ -60,7 +60,7 @@ export async function login(
 
 // POST ไป GAS พร้อม timeout (กัน UI ค้างถาวรเมื่อ GAS ช้า/ไม่ตอบ)
 // แนบ token อัตโนมัติ และถ้า GAS ตอบ code:'AUTH' = เซสชันหมดอายุ → เคลียร์ + แจ้ง
-async function postToGas(payload: object, timeoutMs = 15000): Promise<any> {
+async function postToGas(payload: object, timeoutMs = 25000): Promise<any> {
   const gasUrl = getGasUrl();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -199,7 +199,7 @@ export async function fetchBookings(): Promise<{ data: Booking[]; isLive: boolea
   const gasUrl = getGasUrl();
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     const res = await fetch(`${gasUrl}?t=${Date.now()}`, {
       signal: controller.signal,
