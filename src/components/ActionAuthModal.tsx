@@ -146,29 +146,21 @@ export const ActionAuthModal: React.FC<ActionAuthModalProps> = ({
     }
   };
 
-  // SweetAlert2 Prompt for Confirm / Cancel / Delete / PIN
-  if (!isAuthenticated && (action === 'cancel' || action === 'delete' || action === 'edit')) {
-    const swalIconType = action === 'cancel' ? 'warning' : action === 'delete' ? 'error' : 'question';
+  // หน้ายืนยันสำหรับ ยกเลิก/ลบ (login แล้ว ไม่ต้องใส่ PIN)
+  if (action === 'cancel' || action === 'delete') {
+    const swalIconType = action === 'cancel' ? 'warning' : 'error';
     const titleText =
-      action === 'cancel'
-        ? 'ยืนยันการยกเลิกการจอง?'
-        : action === 'delete'
-        ? 'ยืนยันการลบรายการถาวร?'
-        : 'ยืนยันตัวตนเพื่อแก้ไข';
+      action === 'cancel' ? 'ยืนยันการยกเลิกการจอง?' : 'ยืนยันการลบรายการถาวร?';
 
     const subText =
       action === 'cancel'
         ? 'ต้องการยกเลิกช่วงเวลาการจองนี้ใช่หรือไม่?'
-        : action === 'delete'
-        ? 'เมื่อลบแล้วจะไม่สามารถกู้คืนข้อมูลได้ กรุณาระบุรหัสผ่านเจ้าหน้าที่'
-        : 'กรุณาระบุรหัสผ่านเจ้าหน้าที่เพื่อเข้าสู่หน้าแก้ไขข้อมูล';
+        : 'เมื่อลบแล้วรายการจะถูกซ่อนออกจากระบบ ต้องการดำเนินการต่อหรือไม่?';
 
     const confirmBtnColor =
       action === 'cancel'
         ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
-        : action === 'delete'
-        ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
-        : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30';
+        : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30';
 
     return (
       <div className="fixed inset-0 z-[60] overflow-y-auto bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
