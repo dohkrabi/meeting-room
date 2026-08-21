@@ -1,0 +1,7 @@
+{
+  "name": "ระบบจองห้องประชุม แขวงทางหลวงกระบี่",
+  "description": "ระบบจองห้องประชุมออนไลน์ แขวงทางหลวงกระบี่ ชั้น 3 พร้อมปฏิทินตรวจสอบตารางเวลา ตรวจสอบการชนกัน และการแจ้งเตือน",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

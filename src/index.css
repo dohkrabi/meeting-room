@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@keyframes swalCheck {
+  0% {
+    stroke-dashoffset: 50;
+    transform: scale(0.8);
+  }
+  50% {
+    stroke-dashoffset: 0;
+    transform: scale(1.1);
+  }
+  100% {
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes swalPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
