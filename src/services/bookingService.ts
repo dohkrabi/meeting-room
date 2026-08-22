@@ -24,6 +24,7 @@ export function setGasUrl(url: string) {
 // ───────────────────────────────────────────────
 let authToken: string | null = null;
 let authUsername: string | null = null;
+let authRole: string | null = null;
 let onAuthExpired: (() => void) | null = null;
 
 export function setOnAuthExpired(cb: () => void) {
@@ -35,22 +36,27 @@ export function getAuthToken(): string | null {
 export function getAuthUsername(): string | null {
   return authUsername;
 }
+export function getAuthRole(): string | null {
+  return authRole;
+}
 export function clearAuth() {
   authToken = null;
   authUsername = null;
+  authRole = null;
 }
 
 // เข้าสู่ระบบ → ขอ token จาก GAS
 export async function login(
   username: string,
   password: string
-): Promise<{ ok: boolean; username?: string; expiresInSec?: number; error?: string }> {
+): Promise<{ ok: boolean; username?: string; role?: string; expiresInSec?: number; error?: string }> {
   try {
     const json = await postToGas({ action: 'login', username, password });
     if (json.ok && json.token) {
       authToken = json.token;
       authUsername = json.username || username;
-      return { ok: true, username: authUsername ?? undefined, expiresInSec: json.expiresInSec };
+      authRole = json.role || 'user';
+      return { ok: true, username: authUsername ?? undefined, role: authRole ?? undefined, expiresInSec: json.expiresInSec };
     }
     return { ok: false, error: json.error || 'เข้าสู่ระบบไม่สำเร็จ' };
   } catch (err: any) {
@@ -425,4 +431,84 @@ export async function sendTestNotification(
     console.warn('Test notify fetch error/timeout, returning simulated success:', err);
   }
   return { ok: true, message: 'จำลองการส่งแจ้งเตือนสำเร็จ (ทดสอบข้อความเรียบร้อย)' };
+}
+
+// ───────────────────────────────────────────────
+// จัดการผู้ใช้ (admin เท่านั้น)
+// ───────────────────────────────────────────────
+export interface UserRecord {
+  username: string;
+  role: 'admin' | 'user';
+}
+
+export async function listUsers(): Promise<{ ok: boolean; users?: UserRecord[]; error?: string }> {
+  try {
+    const json = await postToGas({ action: 'list_users' });
+    if (json.ok) return { ok: true, users: json.users || [] };
+    return { ok: false, error: json.error || 'ดึงรายชื่อผู้ใช้ไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+export async function addUser(
+  username: string,
+  password: string,
+  role: 'admin' | 'user'
+): Promise<{ ok: boolean; updated?: boolean; error?: string }> {
+  try {
+    const json = await postToGas({
+      action: 'add_user',
+      new_username: username,
+      new_password: password,
+      new_role: role,
+    });
+    if (json.ok) return { ok: true, updated: json.updated };
+    return { ok: false, error: json.error || 'บันทึกผู้ใช้ไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+export async function removeUser(username: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const json = await postToGas({ action: 'remove_user', target_username: username });
+    if (json.ok) return { ok: true };
+    return { ok: false, error: json.error || 'ลบผู้ใช้ไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+// ───────────────────────────────────────────────
+// ข้อมูลห้อง / สิ่งอำนวยความสะดวก
+// ───────────────────────────────────────────────
+export interface Facilities {
+  location: string;
+  capacity: string;
+  equipment: string[];
+  rules: string[];
+  contact: string;
+}
+
+export async function getFacilities(): Promise<Facilities | null> {
+  try {
+    const json = await postToGas({ action: 'get_facilities' });
+    if (json.ok && json.facilities) return json.facilities as Facilities;
+  } catch (err) {
+    console.warn('getFacilities failed:', err);
+  }
+  return null;
+}
+
+export async function saveFacilities(
+  facilities: Facilities
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const json = await postToGas({ action: 'save_facilities', facilities });
+    if (json.ok) return { ok: true };
+    return { ok: false, error: json.error || 'บันทึกข้อมูลห้องไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
 }

@@ -35,11 +35,12 @@ import { GasSetupModal } from './components/GasSetupModal';
 import { RoomFacilitiesModal } from './components/RoomFacilitiesModal';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { LoginModal } from './components/LoginModal';
+import { UserManagementModal } from './components/UserManagementModal';
 import { useAuth } from './context/AuthContext';
 import { SwalModal, SwalToast, SwalOptions, SwalIconType } from './components/SweetAlert';
 
 export default function App() {
-  const { isAuthed, username, expiresAt, logout } = useAuth();
+  const { isAuthed, isAdmin, username, expiresAt, logout } = useAuth();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -51,6 +52,7 @@ export default function App() {
   const [loginLockedUser, setLoginLockedUser] = useState<string | null>(null);
   const [loginReason, setLoginReason] = useState<string | null>(null);
   const [expiryWarned, setExpiryWarned] = useState(false);
+  const [userMgmtOpen, setUserMgmtOpen] = useState(false);
 
   // Modals state
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
@@ -179,6 +181,19 @@ export default function App() {
     fn();
   };
 
+  // ครอบ action ที่ต้องเป็น admin เท่านั้น
+  const requireAdmin = (fn: () => void) => {
+    if (!isAuthed) {
+      promptLogin('กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแล (admin)');
+      return;
+    }
+    if (!isAdmin) {
+      showToast('เฉพาะผู้ดูแลระบบ (admin) เท่านั้น', 'warning');
+      return;
+    }
+    fn();
+  };
+
   // Handlers
   const handleOpenBookModal = (dateStr?: string, suggestedStart?: string) => {
     requireAuth(() => {
@@ -267,14 +282,18 @@ export default function App() {
   };
 
   const handleOpenNotificationModalWith = (booking?: Booking) => {
-    requireAuth(() => {
+    requireAdmin(() => {
       setNotificationModalBooking(booking || (bookings.length > 0 ? bookings[0] : null));
       setIsNotificationModalOpen(true);
     });
   };
 
   const handleOpenGasModal = () => {
-    requireAuth(() => setIsGasModalOpen(true));
+    requireAdmin(() => setIsGasModalOpen(true));
+  };
+
+  const handleOpenUserManagement = () => {
+    requireAdmin(() => setUserMgmtOpen(true));
   };
 
   return (
@@ -297,6 +316,7 @@ export default function App() {
         onOpenGasModal={handleOpenGasModal}
         onOpenNotificationModal={() => handleOpenNotificationModalWith()}
         onOpenRoomInfo={() => setIsRoomInfoOpen(true)}
+        onOpenUserManagement={handleOpenUserManagement}
         onRefresh={() => {
           loadData();
           showToast('รีเฟรชข้อมูลล่าสุดเรียบร้อย', 'info');
@@ -304,6 +324,7 @@ export default function App() {
         isLoading={isLoading}
         isLive={isLive}
         isAuthed={isAuthed}
+        isAdmin={isAdmin}
         username={username}
         onLogin={() => {
           setLoginLockedUser(null);
@@ -325,7 +346,8 @@ export default function App() {
           onOpenRoomInfo={() => setIsRoomInfoOpen(true)}
         />
 
-        {/* 4-Stage Notification Ribbon */}
+        {/* 4-Stage Notification Ribbon (admin เท่านั้น) */}
+        {isAdmin && (
         <div className="mb-6 bg-linear-to-r from-indigo-900 via-indigo-800 to-stone-900 text-white rounded-3xl p-4 sm:p-5 shadow-md border border-indigo-700/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/15 shadow-inner">
@@ -356,6 +378,7 @@ export default function App() {
             </button>
           </div>
         </div>
+        )}
 
         {/* View Switcher Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -471,18 +494,22 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => handleOpenNotificationModalWith()}
-              className="hover:text-indigo-700 underline transition"
-            >
-              การแจ้งเตือน 4 ระดับ
-            </button>
-            <button
-              onClick={handleOpenGasModal}
-              className="hover:text-indigo-700 underline transition"
-            >
-              การตั้งค่า Apps Script
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => handleOpenNotificationModalWith()}
+                className="hover:text-indigo-700 underline transition"
+              >
+                การแจ้งเตือน 4 ระดับ
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={handleOpenGasModal}
+                className="hover:text-indigo-700 underline transition"
+              >
+                การตั้งค่า Apps Script
+              </button>
+            )}
             <button
               onClick={() => setIsRoomInfoOpen(true)}
               className="hover:text-indigo-700 underline transition"
@@ -541,6 +568,8 @@ export default function App() {
         isOpen={isRoomInfoOpen}
         onClose={() => setIsRoomInfoOpen(false)}
         onOpenBook={() => handleOpenBookModal()}
+        isAdmin={isAdmin}
+        onToast={showToast}
       />
 
       <NotificationSettingsModal
@@ -558,6 +587,13 @@ export default function App() {
           showToast(`เข้าสู่ระบบสำเร็จ · ${u}`, 'success');
           setExpiryWarned(false);
         }}
+      />
+
+      <UserManagementModal
+        isOpen={userMgmtOpen}
+        onClose={() => setUserMgmtOpen(false)}
+        currentUsername={username}
+        onToast={showToast}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   UserCircle2,
+  Users,
 } from 'lucide-react';
 import { formatThaiDateWithDay } from '../utils/thaiDate';
 
@@ -20,10 +21,12 @@ interface HeaderProps {
   onOpenGasModal: () => void;
   onOpenNotificationModal: () => void;
   onOpenRoomInfo: () => void;
+  onOpenUserManagement: () => void;
   onRefresh: () => void;
   isLoading: boolean;
   isLive: boolean;
   isAuthed: boolean;
+  isAdmin: boolean;
   username: string | null;
   onLogin: () => void;
   onLogout: () => void;
@@ -34,10 +37,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenGasModal,
   onOpenNotificationModal,
   onOpenRoomInfo,
+  onOpenUserManagement,
   onRefresh,
   isLoading,
   isLive,
   isAuthed,
+  isAdmin,
   username,
   onLogin,
   onLogout,
@@ -115,8 +120,8 @@ export const Header: React.FC<HeaderProps> = ({
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-700' : ''}`} />
             </button>
 
-            {/* Notification Center Trigger Button (เจ้าหน้าที่เท่านั้น) */}
-            {isAuthed && (
+            {/* Notification Center (admin เท่านั้น) */}
+            {isAdmin && (
               <button
                 onClick={onOpenNotificationModal}
                 title="ระบบแจ้งเตือน 4 ระดับ (เมื่อจองสำเร็จ / 1 วัน / 1 ชม. / 30 นาที)"
@@ -136,7 +141,19 @@ export const Header: React.FC<HeaderProps> = ({
               <span>ข้อมูลห้อง</span>
             </button>
 
-            {isAuthed && (
+            {/* จัดการผู้ใช้ (admin เท่านั้น) */}
+            {isAdmin && (
+              <button
+                onClick={onOpenUserManagement}
+                className="hidden md:inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors"
+              >
+                <Users className="w-3.5 h-3.5 text-stone-500" />
+                <span>จัดการผู้ใช้</span>
+              </button>
+            )}
+
+            {/* Apps Script (admin เท่านั้น) */}
+            {isAdmin && (
               <button
                 onClick={onOpenGasModal}
                 className="hidden lg:inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors"
@@ -161,6 +178,11 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="hidden md:inline-flex items-center space-x-1 text-xs font-semibold text-stone-700">
                     <UserCircle2 className="w-4 h-4 text-emerald-600" />
                     <span>{username}</span>
+                    {isAdmin && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">
+                        admin
+                      </span>
+                    )}
                   </span>
                   <button
                     onClick={onLogout}
