@@ -198,7 +198,7 @@ export const SwalModal: React.FC<SwalOptions> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[80] overflow-y-auto bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div
         className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 flex flex-col items-center text-center border border-stone-100 animate-in zoom-in-95 fade-in duration-200"
         role="dialog"
@@ -300,7 +300,7 @@ export const SwalToast: React.FC<SwalToastProps> = ({
 
   return (
     <div
-      className={`fixed ${positionClasses} z-50 animate-in fade-in slide-in-from-top-4 duration-300`}
+      className={`fixed ${positionClasses} z-[90] animate-in fade-in slide-in-from-top-4 duration-300`}
     >
       <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/80 px-4 py-3 flex items-center space-x-3 min-w-[280px] max-w-sm">
         <SwalIcon type={icon} size="sm" />
