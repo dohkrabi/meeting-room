@@ -12,6 +12,8 @@ import {
   Plus,
   AlertTriangle,
   Share2,
+  Hash,
+  KeyRound,
 } from 'lucide-react';
 import { Booking } from '../types';
 import { formatThaiDateWithDay, formatThaiDate, normalizeDate } from '../utils/thaiDate';
@@ -162,6 +164,23 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
                                 <Video className="w-3.5 h-3.5 shrink-0" />
                                 <span>เปิดลิงก์ Zoom</span>
                               </a>
+                            </div>
+                          )}
+
+                          {b.use_zoom && (b.meeting_id || b.passcode) && (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[11px]">
+                              {b.meeting_id && (
+                                <span className="inline-flex items-center space-x-1 text-stone-600">
+                                  <Hash className="w-3 h-3 text-stone-400 shrink-0" />
+                                  <span>Meeting ID: <span className="font-mono font-medium text-stone-800">{b.meeting_id}</span></span>
+                                </span>
+                              )}
+                              {b.passcode && (
+                                <span className="inline-flex items-center space-x-1 text-stone-600">
+                                  <KeyRound className="w-3 h-3 text-stone-400 shrink-0" />
+                                  <span>Passcode: <span className="font-mono font-medium text-stone-800">{b.passcode}</span></span>
+                                </span>
+                              )}
                             </div>
                           )}
 
