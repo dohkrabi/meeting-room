@@ -203,46 +203,47 @@ export function getInitialSeedBookings(): Booking[] {
 
 export async function fetchBookings(): Promise<{ data: Booking[]; isLive: boolean }> {
   const gasUrl = getGasUrl();
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const res = await fetch(`${gasUrl}?t=${Date.now()}`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+  // ลองดึงข้อมูลจริง สูงสุด 2 ครั้ง (กัน GAS cold start บนมือถือ/เน็ตช้า)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch(`${gasUrl}?t=${Date.now()}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
-    const json = await res.json();
-    if (json.ok && Array.isArray(json.data)) {
-      const formatted: Booking[] = json.data.map((b: any, index: number) => ({
-        ...b,
-        row: b.row || index + 2,
-        name: String(b.name ?? ''),
-        dept: String(b.dept ?? ''),
-        topic: String(b.topic ?? ''),
-        equipment: String(b.equipment ?? ''),
-        zoom_url: String(b.zoom_url ?? ''),
-        meeting_id: String(b.meeting_id ?? ''),
-        passcode: String(b.passcode ?? ''),
-        note: String(b.note ?? ''),
-        time_start: String(b.time_start ?? ''),
-        time_end: String(b.time_end ?? ''),
-        date: normalizeDate(b.date),
-        status: b.status || 'จอง',
-        sent_ok: !!b.sent_ok,
-        sent_1day: !!b.sent_1day,
-        sent_1hr: !!b.sent_1hr,
-        sent_30min: !!b.sent_30min,
-      }));
-      // Cache in local storage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formatted));
-      return { data: formatted, isLive: true };
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data)) {
+        const formatted: Booking[] = json.data.map((b: any, index: number) => ({
+          ...b,
+          row: b.row || index + 2,
+          name: String(b.name ?? ''),
+          dept: String(b.dept ?? ''),
+          topic: String(b.topic ?? ''),
+          equipment: String(b.equipment ?? ''),
+          zoom_url: String(b.zoom_url ?? ''),
+          meeting_id: String(b.meeting_id ?? ''),
+          passcode: String(b.passcode ?? ''),
+          note: String(b.note ?? ''),
+          time_start: String(b.time_start ?? ''),
+          time_end: String(b.time_end ?? ''),
+          date: normalizeDate(b.date),
+          status: b.status || 'จอง',
+          sent_ok: !!b.sent_ok,
+          sent_1day: !!b.sent_1day,
+          sent_1hr: !!b.sent_1hr,
+          sent_30min: !!b.sent_30min,
+        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formatted));
+        return { data: formatted, isLive: true };
+      }
+      // proxy/GAS ตอบไม่ ok (เช่น timeout) → ลองรอบ 2 (GAS น่าจะ warm แล้ว)
+    } catch (err) {
+      console.warn(`GAS fetch attempt ${attempt + 1} failed:`, err);
     }
-  } catch (err) {
-    console.warn('GAS fetch failed or timed out, loading local cached data:', err);
   }
 
-  // Fallback to local storage or initial seeds
+  // โหลดจริงไม่สำเร็จ → ใช้ข้อมูลจริงที่เคย cache ไว้ (ถ้ามี) — ไม่สร้างข้อมูลปลอม
   const local = localStorage.getItem(STORAGE_KEY);
   if (local) {
     try {
@@ -256,9 +257,8 @@ export async function fetchBookings(): Promise<{ data: Booking[]; isLive: boolea
     }
   }
 
-  const seeds = getInitialSeedBookings();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeds));
-  return { data: seeds, isLive: false };
+  // ไม่มีข้อมูลจริงเลย → คืนว่าง (ไม่โชว์ข้อมูลสมมติ)
+  return { data: [], isLive: false };
 }
 
 /**
