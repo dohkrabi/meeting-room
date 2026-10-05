@@ -21,6 +21,28 @@ import {
 import { Booking } from '../types';
 import { formatThaiDate, normalizeDate } from '../utils/thaiDate';
 
+// บรรทัดแสดงอุปกรณ์: ย่อ 1 บรรทัด (ตัด …) คลิกเพื่อกางดูทั้งหมด / คลิกซ้ำเพื่อหุบ
+const EquipmentLine: React.FC<{ text: string }> = ({ text }) => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setExpanded((v) => !v)}
+      title={expanded ? 'คลิกเพื่อย่อ' : 'คลิกเพื่อดูอุปกรณ์ทั้งหมด'}
+      className="group w-full text-left text-xs text-stone-500 flex items-start space-x-1 pt-0.5 min-w-0"
+    >
+      <Wrench className="w-3 h-3 text-stone-400 shrink-0 mt-0.5" />
+      <span
+        className={`min-w-0 group-hover:text-stone-700 transition-colors ${
+          expanded ? 'whitespace-normal break-words' : 'truncate'
+        }`}
+      >
+        {text}
+      </span>
+    </button>
+  );
+};
+
 interface BookingCardListProps {
   bookings: Booking[];
   onOpenAction: (action: 'edit' | 'cancel' | 'delete', booking: Booking) => void;
@@ -225,7 +247,7 @@ export const BookingCardList: React.FC<BookingCardListProps> = ({
                 }`}
               >
                 {/* Left: Date Badge & Core Information */}
-                <div className="flex items-start space-x-3.5">
+                <div className="flex items-start space-x-3.5 flex-1 min-w-0">
                   {/* Date Badge */}
                   <div
                     className={`shrink-0 w-12 sm:w-14 text-center rounded-xl p-2 border ${
@@ -350,12 +372,7 @@ export const BookingCardList: React.FC<BookingCardListProps> = ({
                     </div>
 
                     {/* Equipment & Zoom Info */}
-                    {b.equipment && (
-                      <div className="text-xs text-stone-500 flex items-center space-x-1 pt-0.5">
-                        <Wrench className="w-3 h-3 text-stone-400 shrink-0" />
-                        <span className="truncate">{b.equipment}</span>
-                      </div>
-                    )}
+                    {b.equipment && <EquipmentLine text={b.equipment} />}
                   </div>
                 </div>
 
