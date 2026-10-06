@@ -411,6 +411,58 @@ export async function cancelOrDeleteBooking(
   return { ok: true };
 }
 
+// ───────────────────────────────────────────────
+// คำขอจอง (สาธารณะ — ไม่ต้องล็อกอิน)
+// ───────────────────────────────────────────────
+
+// ตรวจห้องว่างแบบ real-time (เทียบทั้งการจองจริง + คำขอที่รออนุมัติ)
+export async function checkAvailability(
+  date: string,
+  time_start: string,
+  time_end: string
+): Promise<{ ok: boolean; available?: boolean; conflict?: any; error?: string }> {
+  try {
+    const json = await postToGas(
+      { action: 'check_availability', date: normalizeDate(date), time_start, time_end },
+      15000
+    );
+    if (json.ok) return { ok: true, available: !!json.available, conflict: json.conflict || null };
+    return { ok: false, error: json.error || 'ตรวจสอบห้องว่างไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+export interface BookingRequestPayload {
+  name: string;
+  dept: string;
+  phone: string;
+  date: string;
+  time_start: string;
+  time_end: string;
+  topic: string;
+  attendees?: number | string;
+  equipment?: string;
+  use_zoom?: boolean;
+  zoom_url?: string;
+  meeting_id?: string;
+  passcode?: string;
+  note?: string;
+}
+
+// ส่งคำขอจอง → เซิร์ฟเวอร์เช็กห้องว่างซ้ำแล้วบันทึกสถานะ "รออนุมัติ"
+export async function submitBookingRequest(
+  p: BookingRequestPayload
+): Promise<{ ok: boolean; message?: string; error?: string; code?: string; conflict?: any }> {
+  try {
+    const json = await postToGas({ action: 'request_booking', ...p, date: normalizeDate(p.date) });
+    if (json.ok) return { ok: true, message: json.message };
+    return { ok: false, error: json.error || 'ส่งคำขอไม่สำเร็จ', code: json.code, conflict: json.conflict };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง' };
+  }
+}
+
 /**
  * Send Test LINE Notification
  */

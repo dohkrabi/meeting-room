@@ -28,6 +28,7 @@ import { CalendarView } from './components/CalendarView';
 import { TimelineDayView } from './components/TimelineDayView';
 import { BookingCardList } from './components/BookingCardList';
 import { BookingModal } from './components/BookingModal';
+import { RequestBookingModal } from './components/RequestBookingModal';
 import { ActionAuthModal } from './components/ActionAuthModal';
 import { DayDetailModal } from './components/DayDetailModal';
 import { LineInviteModal } from './components/LineInviteModal';
@@ -56,6 +57,7 @@ export default function App() {
 
   // Modals state
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isRequestOpen, setIsRequestOpen] = useState(false);
   const [initialBookDate, setInitialBookDate] = useState<string | undefined>(undefined);
   const [initialBookStartTime, setInitialBookStartTime] = useState<string | undefined>(undefined);
 
@@ -380,6 +382,30 @@ export default function App() {
         </div>
         )}
 
+        {/* Public Request CTA (ทุกคนเห็น ไม่ต้องล็อกอิน) */}
+        <div className="mb-6 bg-white rounded-2xl border border-teal-200 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-100">
+              <CalendarPlus className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm text-stone-900 font-['Prompt',sans-serif]">
+                ต้องการใช้ห้องประชุม? ส่งคำขอได้เลย (ไม่ต้องเข้าสู่ระบบ)
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                ระบบจะตรวจสอบห้องว่างให้อัตโนมัติ แล้วส่งคำขอให้เจ้าหน้าที่ตรวจสอบและยืนยัน
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsRequestOpen(true)}
+            className="px-5 py-2.5 rounded-xl bg-teal-700 text-white font-bold text-xs sm:text-sm hover:bg-teal-800 active:scale-98 transition shadow-md shadow-teal-700/20 flex items-center justify-center space-x-2 shrink-0"
+          >
+            <CalendarPlus className="w-4 h-4" />
+            <span>ขอใช้ห้องประชุม</span>
+          </button>
+        </div>
+
         {/* View Switcher Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="inline-flex p-1 rounded-2xl bg-stone-200/80 border border-stone-300/60 shadow-xs self-start">
@@ -528,6 +554,12 @@ export default function App() {
         existingBookings={bookings}
         initialDate={initialBookDate}
         initialStartTime={initialBookStartTime}
+      />
+
+      <RequestBookingModal
+        isOpen={isRequestOpen}
+        onClose={() => setIsRequestOpen(false)}
+        onSubmitted={() => loadData(true)}
       />
 
       <ActionAuthModal
