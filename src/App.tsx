@@ -148,6 +148,9 @@ export default function App() {
   useEffect(() => {
     if (!isAuthed) {
       setPendingRequests(0);
+      // หลุดจากระบบ → ปิดหน้าที่ใช้ได้เฉพาะเจ้าหน้าที่
+      setIsRequestsPanelOpen(false);
+      setUserMgmtOpen(false);
       return;
     }
     refreshPending();
@@ -170,6 +173,8 @@ export default function App() {
     const timer = setInterval(() => {
       const msLeft = expiresAt - Date.now();
       if (msLeft <= 0) {
+        // ปิดป๊อปอัปเตือนที่อาจค้างอยู่ (ผู้ใช้ไม่ได้กดอะไรจนหมดเวลา)
+        setSwalState((prev) => (prev.title === 'เซสชันใกล้หมดอายุ' ? { ...prev, isOpen: false } : prev));
         logout();
         showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
       } else if (msLeft <= 5 * 60 * 1000 && !expiryWarned) {

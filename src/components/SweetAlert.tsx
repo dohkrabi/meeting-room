@@ -182,19 +182,15 @@ export const SwalModal: React.FC<SwalOptions> = ({
         return;
       }
     }
-    if (onConfirm) {
-      onConfirm(pinValue);
-    } else {
-      onClose();
-    }
+    // ปิดป๊อปอัปเสมอ แล้วค่อยทำคำสั่งของปุ่ม
+    // (เดิมไม่ปิด → ป๊อปอัปค้าง z-80 บังหน้า login ที่เด้งตามมา)
+    onClose();
+    if (onConfirm) onConfirm(pinValue);
   };
 
   const handleCancelClick = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      onClose();
-    }
+    onClose();
+    if (onCancel) onCancel();
   };
 
   return (
