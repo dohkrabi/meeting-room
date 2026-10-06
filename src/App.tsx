@@ -21,6 +21,7 @@ import {
   createBooking,
   updateBooking,
   cancelOrDeleteBooking,
+  listRequests,
 } from './services/bookingService';
 import { Header } from './components/Header';
 import { RoomHero } from './components/RoomHero';
@@ -29,6 +30,7 @@ import { TimelineDayView } from './components/TimelineDayView';
 import { BookingCardList } from './components/BookingCardList';
 import { BookingModal } from './components/BookingModal';
 import { RequestBookingModal } from './components/RequestBookingModal';
+import { RequestsPanel } from './components/RequestsPanel';
 import { ActionAuthModal } from './components/ActionAuthModal';
 import { DayDetailModal } from './components/DayDetailModal';
 import { LineInviteModal } from './components/LineInviteModal';
@@ -58,6 +60,8 @@ export default function App() {
   // Modals state
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [isRequestOpen, setIsRequestOpen] = useState(false);
+  const [isRequestsPanelOpen, setIsRequestsPanelOpen] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState(0);
   const [initialBookDate, setInitialBookDate] = useState<string | undefined>(undefined);
   const [initialBookStartTime, setInitialBookStartTime] = useState<string | undefined>(undefined);
 
@@ -134,6 +138,30 @@ export default function App() {
     const interval = setInterval(() => loadData(true), 3 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadData]);
+
+  // จำนวนคำขอรออนุมัติ (badge) — ดึงเมื่อล็อกอิน และทุก 3 นาที
+  const refreshPending = useCallback(async () => {
+    const res = await listRequests();
+    if (res.ok) setPendingRequests(res.pending ?? 0);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      setPendingRequests(0);
+      return;
+    }
+    refreshPending();
+    const t = setInterval(refreshPending, 3 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [isAuthed, refreshPending]);
+
+  const handleRequestsChanged = useCallback(
+    (pending: number, bookingsChanged: boolean) => {
+      setPendingRequests(pending);
+      if (bookingsChanged) loadData(true);
+    },
+    [loadData]
+  );
 
   // B2: เตือนก่อนเซสชันหมด 5 นาที + ต่ออายุ / ออกจากระบบเมื่อหมด
   useEffect(() => {
@@ -319,6 +347,8 @@ export default function App() {
         onOpenNotificationModal={() => handleOpenNotificationModalWith()}
         onOpenRoomInfo={() => setIsRoomInfoOpen(true)}
         onOpenUserManagement={handleOpenUserManagement}
+        onOpenRequests={() => requireAuth(() => setIsRequestsPanelOpen(true))}
+        pendingRequests={pendingRequests}
         onRefresh={() => {
           loadData();
           showToast('รีเฟรชข้อมูลล่าสุดเรียบร้อย', 'info');
@@ -559,7 +589,17 @@ export default function App() {
       <RequestBookingModal
         isOpen={isRequestOpen}
         onClose={() => setIsRequestOpen(false)}
-        onSubmitted={() => loadData(true)}
+        onSubmitted={() => {
+          loadData(true);
+          if (isAuthed) refreshPending();
+        }}
+      />
+
+      <RequestsPanel
+        isOpen={isRequestsPanelOpen}
+        onClose={() => setIsRequestsPanelOpen(false)}
+        onChanged={handleRequestsChanged}
+        onToast={showToast}
       />
 
       <ActionAuthModal

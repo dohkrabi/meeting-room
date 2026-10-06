@@ -463,6 +463,70 @@ export async function submitBookingRequest(
   }
 }
 
+// ── คำขอจอง: ฝั่งเจ้าหน้าที่ (ต้องล็อกอิน) ──
+export interface BookingRequest extends BookingRequestPayload {
+  row: number;
+  timestamp: string;
+  status: 'รออนุมัติ' | 'อนุมัติแล้ว' | 'ปฏิเสธ' | string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  reject_reason?: string;
+}
+
+export async function listRequests(): Promise<{
+  ok: boolean;
+  requests?: BookingRequest[];
+  pending?: number;
+  error?: string;
+}> {
+  try {
+    const json = await postToGas({ action: 'list_requests' }, 20000);
+    if (json.ok) {
+      const requests: BookingRequest[] = (json.requests || []).map((r: any) => ({
+        ...r,
+        date: normalizeDate(r.date),
+        name: String(r.name ?? ''),
+        dept: String(r.dept ?? ''),
+        phone: String(r.phone ?? ''),
+        topic: String(r.topic ?? ''),
+        equipment: String(r.equipment ?? ''),
+        note: String(r.note ?? ''),
+        time_start: String(r.time_start ?? ''),
+        time_end: String(r.time_end ?? ''),
+      }));
+      return { ok: true, requests, pending: json.counts?.pending ?? 0 };
+    }
+    return { ok: false, error: json.error || 'ดึงรายการคำขอไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+export async function approveRequest(
+  row: number
+): Promise<{ ok: boolean; error?: string; code?: string; conflict?: any }> {
+  try {
+    const json = await postToGas({ action: 'approve_request', row });
+    if (json.ok) return { ok: true };
+    return { ok: false, error: json.error || 'อนุมัติไม่สำเร็จ', code: json.code, conflict: json.conflict };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+export async function rejectRequest(
+  row: number,
+  reason: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const json = await postToGas({ action: 'reject_request', row, reason });
+    if (json.ok) return { ok: true };
+    return { ok: false, error: json.error || 'ปฏิเสธไม่สำเร็จ' };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
 /**
  * Send Test LINE Notification
  */

@@ -13,6 +13,7 @@ import {
   LogOut,
   UserCircle2,
   Users,
+  Inbox,
 } from 'lucide-react';
 import { formatThaiDateWithDay } from '../utils/thaiDate';
 
@@ -22,6 +23,8 @@ interface HeaderProps {
   onOpenNotificationModal: () => void;
   onOpenRoomInfo: () => void;
   onOpenUserManagement: () => void;
+  onOpenRequests: () => void;
+  pendingRequests: number;
   onRefresh: () => void;
   isLoading: boolean;
   isLive: boolean;
@@ -38,6 +41,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNotificationModal,
   onOpenRoomInfo,
   onOpenUserManagement,
+  onOpenRequests,
+  pendingRequests,
   onRefresh,
   isLoading,
   isLive,
@@ -165,6 +170,21 @@ export const Header: React.FC<HeaderProps> = ({
 
             {isAuthed ? (
               <>
+                {/* คำขอจอง (เจ้าหน้าที่ทุกคน) + badge จำนวนรออนุมัติ */}
+                <button
+                  onClick={onOpenRequests}
+                  title="คำขอจองห้องประชุมจากผู้ใช้ทั่วไป"
+                  className="relative inline-flex items-center space-x-1.5 px-3 py-2 sm:py-2.5 rounded-xl text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-colors"
+                >
+                  <Inbox className="w-4 h-4 text-teal-700" />
+                  <span className="hidden sm:inline">คำขอจอง</span>
+                  {pendingRequests > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                      {pendingRequests > 99 ? '99+' : pendingRequests}
+                    </span>
+                  )}
+                </button>
+
                 <button
                   onClick={onOpenBook}
                   className="inline-flex items-center space-x-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 shadow-md shadow-indigo-700/25 transition-all transform hover:-translate-y-0.5"
