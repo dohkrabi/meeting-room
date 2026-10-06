@@ -419,11 +419,18 @@ export async function cancelOrDeleteBooking(
 export async function checkAvailability(
   date: string,
   time_start: string,
-  time_end: string
+  time_end: string,
+  excludeReqRow?: number // ใช้ตอนเจ้าหน้าที่แก้คำขอ: ไม่นับคำขอแถวนี้ว่าชนกับตัวเอง
 ): Promise<{ ok: boolean; available?: boolean; conflict?: any; error?: string }> {
   try {
     const json = await postToGas(
-      { action: 'check_availability', date: normalizeDate(date), time_start, time_end },
+      {
+        action: 'check_availability',
+        date: normalizeDate(date),
+        time_start,
+        time_end,
+        ...(excludeReqRow ? { exclude_req_row: excludeReqRow } : {}),
+      },
       15000
     );
     if (json.ok) return { ok: true, available: !!json.available, conflict: json.conflict || null };
@@ -509,6 +516,29 @@ export async function approveRequest(
     const json = await postToGas({ action: 'approve_request', row });
     if (json.ok) return { ok: true };
     return { ok: false, error: json.error || 'อนุมัติไม่สำเร็จ', code: json.code, conflict: json.conflict };
+  } catch {
+    return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
+  }
+}
+
+export interface RequestEdit {
+  date: string;
+  time_start: string;
+  time_end: string;
+  topic: string;
+  attendees?: number | string;
+  note?: string;
+}
+
+// แก้คำขอที่รออนุมัติ (วัน/เวลา/หัวข้อ/จำนวนคน/หมายเหตุ) — เซิร์ฟเวอร์เช็กห้องว่างซ้ำ
+export async function updateRequest(
+  row: number,
+  edit: RequestEdit
+): Promise<{ ok: boolean; error?: string; code?: string; conflict?: any }> {
+  try {
+    const json = await postToGas({ action: 'update_request', row, ...edit, date: normalizeDate(edit.date) });
+    if (json.ok) return { ok: true };
+    return { ok: false, error: json.error || 'บันทึกการแก้ไขไม่สำเร็จ', code: json.code, conflict: json.conflict };
   } catch {
     return { ok: false, error: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' };
   }

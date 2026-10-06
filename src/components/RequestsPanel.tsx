@@ -15,12 +15,18 @@ import {
   AlertTriangle,
   RefreshCw,
   Inbox,
+  Pencil,
+  Save,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   listRequests,
   approveRequest,
   rejectRequest,
+  updateRequest,
+  checkAvailability,
   BookingRequest,
+  RequestEdit,
 } from '../services/bookingService';
 import { formatThaiDate } from '../utils/thaiDate';
 
@@ -54,6 +60,7 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
   const [busyRow, setBusyRow] = useState<number | null>(null);
   const [confirmRow, setConfirmRow] = useState<number | null>(null);
   const [rejectRow, setRejectRow] = useState<number | null>(null);
+  const [editRow, setEditRow] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const [rowError, setRowError] = useState<{ row: number; msg: string } | null>(null);
 
@@ -75,6 +82,7 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
       setTab('pending');
       setConfirmRow(null);
       setRejectRow(null);
+      setEditRow(null);
       setRowError(null);
       load();
     }
@@ -141,6 +149,13 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
     } else {
       setRowError({ row: r.row, msg: res.error || 'ปฏิเสธไม่สำเร็จ' });
     }
+  };
+
+  const handleEdited = (r: BookingRequest, edit: RequestEdit) => {
+    setItems(items.map((x) => (x.row === r.row ? { ...x, ...edit } : x)));
+    setEditRow(null);
+    setRowError(null);
+    onToast('บันทึกการแก้ไขแล้ว — ตรวจสอบอีกครั้งแล้วกดอนุมัติเมื่อพร้อม', 'success');
   };
 
   const copyPhone = async (phone: string) => {
@@ -292,7 +307,20 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
                         </div>
                       </div>
 
+                      {editRow !== r.row && (
                       <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                        <button
+                          onClick={() => {
+                            setEditRow(r.row);
+                            setRejectRow(null);
+                            setConfirmRow(null);
+                            setRowError(null);
+                          }}
+                          disabled={busy}
+                          className="px-3 py-2 rounded-lg border border-stone-200 text-stone-700 text-xs font-semibold hover:bg-stone-100 flex items-center gap-1.5 disabled:opacity-60"
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> แก้ไข
+                        </button>
                         <button
                           onClick={() => handleApprove(r)}
                           disabled={busy}
@@ -317,7 +345,16 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
                           <X className="w-3.5 h-3.5" /> ปฏิเสธ
                         </button>
                       </div>
+                      )}
                     </div>
+
+                    {editRow === r.row && (
+                      <EditRequestForm
+                        request={r}
+                        onCancel={() => setEditRow(null)}
+                        onSaved={(edit) => handleEdited(r, edit)}
+                      />
+                    )}
 
                     {rowError?.row === r.row && (
                       <div className="mt-3 md:ml-[4.4rem] p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-start gap-2">
@@ -399,6 +436,181 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ── ฟอร์มแก้คำขอ (วัน/เวลา/หัวข้อ/จำนวนคน/หมายเหตุ) ──
+const EditRequestForm: React.FC<{
+  request: BookingRequest;
+  onCancel: () => void;
+  onSaved: (edit: RequestEdit) => void;
+}> = ({ request: r, onCancel, onSaved }) => {
+  const [date, setDate] = useState(r.date);
+  const [ts, setTs] = useState(r.time_start);
+  const [te, setTe] = useState(r.time_end);
+  const [topic, setTopic] = useState(r.topic);
+  const [attendees, setAttendees] = useState<string>(String(r.attendees ?? ''));
+  const [note, setNote] = useState(r.note || '');
+  const [avail, setAvail] = useState<'idle' | 'checking' | 'free' | 'busy' | 'error'>('idle');
+  const [conflict, setConflict] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const timeValid = !!date && !!ts && !!te && ts < te;
+  const scheduleChanged = date !== r.date || ts !== r.time_start || te !== r.time_end;
+
+  // เช็กห้องว่างเมื่อเปลี่ยนวัน/เวลา (ไม่นับคำขอตัวเอง)
+  useEffect(() => {
+    if (!timeValid) {
+      setAvail('idle');
+      return;
+    }
+    if (!scheduleChanged) {
+      setAvail('free');
+      setConflict(null);
+      return;
+    }
+    let cancelled = false;
+    setAvail('checking');
+    const id = setTimeout(async () => {
+      const res = await checkAvailability(date, ts, te, r.row);
+      if (cancelled) return;
+      if (!res.ok) setAvail('error');
+      else if (res.available) {
+        setAvail('free');
+        setConflict(null);
+      } else {
+        setAvail('busy');
+        setConflict(res.conflict);
+      }
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [date, ts, te, timeValid, scheduleChanged, r.row]);
+
+  const save = async () => {
+    setError('');
+    if (!topic.trim()) return setError('กรุณาระบุหัวข้อการประชุม');
+    if (!timeValid) return setError('เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม');
+    const edit: RequestEdit = {
+      date,
+      time_start: ts,
+      time_end: te,
+      topic: topic.trim(),
+      attendees: attendees === '' ? '' : Number(attendees),
+      note: note.trim(),
+    };
+    setSaving(true);
+    const res = await updateRequest(r.row, edit);
+    setSaving(false);
+    if (res.ok) onSaved(edit);
+    else if (res.code === 'SLOT_TAKEN') {
+      setAvail('busy');
+      setConflict(res.conflict);
+      setError('ช่วงเวลาใหม่เพิ่งถูกจอง กรุณาเลือกเวลาอื่น');
+    } else setError(res.error || 'บันทึกไม่สำเร็จ');
+  };
+
+  const inputCls =
+    'w-full px-3 py-2 rounded-lg border border-stone-300 text-xs sm:text-sm focus:outline-none focus:border-teal-600 bg-white';
+  const was = (changed: boolean, old: string) =>
+    changed ? <span className="font-normal text-amber-700"> (เดิม {old})</span> : null;
+
+  return (
+    <div className="mt-3 md:ml-[4.4rem] bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-3">
+      <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+        <Pencil className="w-3.5 h-3.5" /> แก้ไขคำขอ
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="sm:col-span-3">
+          <label htmlFor={`e-topic-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
+            หัวข้อการประชุม
+          </label>
+          <input id={`e-topic-${r.row}`} value={topic} onChange={(e) => setTopic(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label htmlFor={`e-date-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
+            วันที่{was(date !== r.date, formatThaiDate(r.date, true))}
+          </label>
+          <input id={`e-date-${r.row}`} type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label htmlFor={`e-ts-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
+            เวลาเริ่ม{was(ts !== r.time_start, r.time_start)}
+          </label>
+          <input id={`e-ts-${r.row}`} type="time" step={60} value={ts} onChange={(e) => setTs(e.target.value)} className={inputCls + ' font-mono'} />
+        </div>
+        <div>
+          <label htmlFor={`e-te-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
+            เวลาสิ้นสุด{was(te !== r.time_end, r.time_end)}
+          </label>
+          <input id={`e-te-${r.row}`} type="time" step={60} value={te} onChange={(e) => setTe(e.target.value)} className={inputCls + ' font-mono'} />
+        </div>
+        <div>
+          <label htmlFor={`e-att-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
+            จำนวนผู้เข้าร่วม
+          </label>
+          <input id={`e-att-${r.row}`} type="number" min={1} max={60} value={attendees} onChange={(e) => setAttendees(e.target.value)} className={inputCls} />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor={`e-note-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
+            หมายเหตุ
+          </label>
+          <input
+            id={`e-note-${r.row}`}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="เช่น แก้วันที่ตามที่โทรยืนยันกับผู้ขอแล้ว"
+            className={inputCls}
+          />
+        </div>
+      </div>
+
+      {!timeValid ? (
+        <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-500 text-xs">เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม</div>
+      ) : avail === 'checking' ? (
+        <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-600 text-xs flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> กำลังตรวจสอบห้องว่าง...
+        </div>
+      ) : avail === 'busy' ? (
+        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-start gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>
+            ช่วงเวลาใหม่ไม่ว่าง{conflict?.kind ? ` (${conflict.kind})` : ''}
+            {conflict?.topic ? ` · ${conflict.topic} ${conflict.time_start}–${conflict.time_end} น.` : ''}
+          </span>
+        </div>
+      ) : avail === 'error' ? (
+        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">ตรวจสอบห้องว่างไม่สำเร็จ ลองปรับเวลาอีกครั้ง</div>
+      ) : (
+        <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          {scheduleChanged ? 'วันและเวลาใหม่ว่าง — บันทึกได้' : 'วันและเวลาไม่เปลี่ยน'}
+        </div>
+      )}
+
+      <p className="text-[11px] text-stone-500">ชื่อ เบอร์ อุปกรณ์ และ Zoom ของผู้ขอแก้ในขั้นนี้ไม่ได้</p>
+
+      {error && (
+        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">{error}</div>
+      )}
+
+      <div className="flex items-center justify-end gap-2">
+        <button onClick={onCancel} className="px-3 py-2 rounded-lg border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-100">
+          ยกเลิก
+        </button>
+        <button
+          onClick={save}
+          disabled={saving || avail !== 'free'}
+          className="px-3.5 py-2 rounded-lg bg-stone-800 text-white text-xs font-bold hover:bg-stone-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          บันทึกการแก้ไข
+        </button>
       </div>
     </div>
   );
