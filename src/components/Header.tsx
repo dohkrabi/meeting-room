@@ -16,6 +16,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import { formatThaiDateWithDay } from '../utils/thaiDate';
+import { InstallAppButton } from './InstallApp';
 
 interface HeaderProps {
   onOpenBook: () => void;
@@ -116,6 +117,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-2 sm:space-x-2.5">
+            <InstallAppButton />
+
             <button
               onClick={onRefresh}
               disabled={isLoading}
@@ -218,8 +221,9 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onLogin}
                 className="inline-flex items-center space-x-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 shadow-md shadow-indigo-700/25 transition-all"
               >
-                <LogIn className="w-4 h-4" />
-                <span>เข้าสู่ระบบเจ้าหน้าที่</span>
+                <LogIn className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">เข้าสู่ระบบเจ้าหน้าที่</span>
+                <span className="sm:hidden whitespace-nowrap">เข้าสู่ระบบ</span>
               </button>
             )}
           </div>

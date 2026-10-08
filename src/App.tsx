@@ -31,6 +31,7 @@ import { BookingCardList } from './components/BookingCardList';
 import { BookingModal } from './components/BookingModal';
 import { RequestBookingModal } from './components/RequestBookingModal';
 import { RequestsPanel } from './components/RequestsPanel';
+import { UpdateToast } from './components/InstallApp';
 import { ActionAuthModal } from './components/ActionAuthModal';
 import { DayDetailModal } from './components/DayDetailModal';
 import { LineInviteModal } from './components/LineInviteModal';
@@ -341,6 +342,8 @@ export default function App() {
         position="top-end"
         onClose={() => setToastState((prev) => ({ ...prev, isOpen: false }))}
       />
+
+      <UpdateToast />
 
       {/* SweetAlert2 Global Dialog */}
       <SwalModal {...swalState} />
