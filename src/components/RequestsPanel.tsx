@@ -29,6 +29,8 @@ import {
   RequestEdit,
 } from '../services/bookingService';
 import { formatThaiDate } from '../utils/thaiDate';
+import { ThaiDateTimeFields } from './ThaiDateTimeFields';
+import { Booking } from '../types';
 
 type Tab = 'pending' | 'approved' | 'rejected';
 const TAB_STATUS: Record<Tab, string> = {
@@ -43,6 +45,8 @@ interface RequestsPanelProps {
   /** เรียกเมื่อจำนวนรออนุมัติเปลี่ยน / มีการอนุมัติ (ให้ App รีเฟรชปฏิทิน + badge) */
   onChanged: (pending: number, bookingsChanged: boolean) => void;
   onToast: (msg: string, icon?: 'success' | 'error' | 'warning' | 'info') => void;
+  /** รายการจองที่โหลดไว้ — ใช้แสดงวันที่มีจองในปฏิทินตอนแก้คำขอ */
+  bookings?: Booking[];
 }
 
 // "2026-10-06 14:05:00" → "6 ต.ค. 2569 เวลา 14:05 น."
@@ -52,7 +56,7 @@ function fmtSubmitted(ts: string): string {
   return `${formatThaiDate(m[1], true)} เวลา ${m[2]} น.`;
 }
 
-export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, onChanged, onToast }) => {
+export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, onChanged, onToast, bookings = [] }) => {
   const [tab, setTab] = useState<Tab>('pending');
   const [items, setItems] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -351,6 +355,7 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
                     {editRow === r.row && (
                       <EditRequestForm
                         request={r}
+                        bookings={bookings}
                         onCancel={() => setEditRow(null)}
                         onSaved={(edit) => handleEdited(r, edit)}
                       />
@@ -444,9 +449,10 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({ isOpen, onClose, o
 // ── ฟอร์มแก้คำขอ (วัน/เวลา/หัวข้อ/จำนวนคน/หมายเหตุ) ──
 const EditRequestForm: React.FC<{
   request: BookingRequest;
+  bookings: Booking[];
   onCancel: () => void;
   onSaved: (edit: RequestEdit) => void;
-}> = ({ request: r, onCancel, onSaved }) => {
+}> = ({ request: r, bookings, onCancel, onSaved }) => {
   const [date, setDate] = useState(r.date);
   const [ts, setTs] = useState(r.time_start);
   const [te, setTe] = useState(r.time_end);
@@ -532,23 +538,23 @@ const EditRequestForm: React.FC<{
           </label>
           <input id={`e-topic-${r.row}`} value={topic} onChange={(e) => setTopic(e.target.value)} className={inputCls} />
         </div>
-        <div>
-          <label htmlFor={`e-date-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
-            วันที่{was(date !== r.date, formatThaiDate(r.date, true))}
-          </label>
-          <input id={`e-date-${r.row}`} type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label htmlFor={`e-ts-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
-            เวลาเริ่ม{was(ts !== r.time_start, r.time_start)}
-          </label>
-          <input id={`e-ts-${r.row}`} type="time" step={60} value={ts} onChange={(e) => setTs(e.target.value)} className={inputCls + ' font-mono'} />
-        </div>
-        <div>
-          <label htmlFor={`e-te-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">
-            เวลาสิ้นสุด{was(te !== r.time_end, r.time_end)}
-          </label>
-          <input id={`e-te-${r.row}`} type="time" step={60} value={te} onChange={(e) => setTe(e.target.value)} className={inputCls + ' font-mono'} />
+        <div className="sm:col-span-3">
+          <ThaiDateTimeFields
+            idPrefix={`e-${r.row}`}
+            accent="teal"
+            date={date}
+            timeStart={ts}
+            timeEnd={te}
+            onDateChange={setDate}
+            onTimeStartChange={setTs}
+            onTimeEndChange={setTe}
+            bookings={bookings}
+          />
+          {scheduleChanged && (
+            <p className="mt-1.5 text-[11px] text-amber-700">
+              เดิม: {formatThaiDate(r.date, true)} · {r.time_start}–{r.time_end} น.
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor={`e-att-${r.row}`} className="block text-xs font-semibold text-stone-700 mb-1">

@@ -16,6 +16,7 @@ import {
 import { Booking, DEPARTMENTS, EQUIPMENT_OPTIONS } from '../types';
 import { formatThaiDate, normalizeDate, hashStr, ADMIN_PIN_HASH } from '../utils/thaiDate';
 import { SwalIcon } from './SweetAlert';
+import { ThaiDateTimeFields } from './ThaiDateTimeFields';
 
 interface ActionAuthModalProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ interface ActionAuthModalProps {
   booking: Booking | null;
   onConfirmCancelOrDelete: (action: 'cancel' | 'delete', booking: Booking) => Promise<boolean>;
   onConfirmEdit: (updatedBooking: Booking) => Promise<boolean>;
+  /** รายการจองที่โหลดไว้ — ใช้แสดงวันที่มีจองในปฏิทิน */
+  bookings?: Booking[];
 }
 
 export const ActionAuthModal: React.FC<ActionAuthModalProps> = ({
@@ -33,6 +36,7 @@ export const ActionAuthModal: React.FC<ActionAuthModalProps> = ({
   booking,
   onConfirmCancelOrDelete,
   onConfirmEdit,
+  bookings = [],
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -259,46 +263,17 @@ export const ActionAuthModal: React.FC<ActionAuthModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  วันที่ <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  เวลาเริ่ม <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  required
-                  step={60}
-                  value={timeStart}
-                  onChange={(e) => setTimeStart(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  เวลาสิ้นสุด <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  required
-                  step={60}
-                  value={timeEnd}
-                  onChange={(e) => setTimeEnd(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                />
-              </div>
-            </div>
+            <ThaiDateTimeFields
+              idPrefix="edit"
+              date={date}
+              timeStart={timeStart}
+              timeEnd={timeEnd}
+              onDateChange={setDate}
+              onTimeStartChange={setTimeStart}
+              onTimeEndChange={setTimeEnd}
+              bookings={bookings}
+              excludeRow={booking?.row}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>

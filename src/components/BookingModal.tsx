@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Booking, DEPARTMENTS, EQUIPMENT_OPTIONS } from '../types';
 import { findConflict } from '../services/bookingService';
+import { ThaiDateTimeFields } from './ThaiDateTimeFields';
 import { formatThaiDate, normalizeDate, hashStr, ADMIN_PIN_HASH } from '../utils/thaiDate';
 
 interface BookingModalProps {
@@ -398,48 +399,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   2. วันและเวลาที่ต้องการใช้ห้อง
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      วันที่ประชุม <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm focus:outline-none focus:border-indigo-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      เวลาเริ่ม (24 ชม.) <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required
-                      step={60}
-                      value={timeStart}
-                      onChange={(e) => setTimeStart(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm focus:outline-none focus:border-indigo-600 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      เวลาสิ้นสุด (24 ชม.) <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required
-                      step={60}
-                      value={timeEnd}
-                      onChange={(e) => setTimeEnd(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm focus:outline-none focus:border-indigo-600 font-mono"
-                    />
-                  </div>
-                </div>
+                <ThaiDateTimeFields
+                  idPrefix="book"
+                  date={date}
+                  timeStart={timeStart}
+                  timeEnd={timeEnd}
+                  onDateChange={setDate}
+                  onTimeStartChange={setTimeStart}
+                  onTimeEndChange={setTimeEnd}
+                  bookings={existingBookings}
+                />
               </div>
 
               {/* Section 3: Contact Person */}

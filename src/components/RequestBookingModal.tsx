@@ -16,11 +16,14 @@ import {
   BookingRequestPayload,
 } from '../services/bookingService';
 import { formatThaiDate, normalizeDate } from '../utils/thaiDate';
+import { ThaiDateTimeFields } from './ThaiDateTimeFields';
 
 interface RequestBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmitted?: () => void;
+  /** รายการจองที่โหลดไว้ — ใช้แสดงวันที่มีจองในปฏิทิน */
+  bookings?: Booking[];
 }
 
 type AvailState =
@@ -34,6 +37,7 @@ export const RequestBookingModal: React.FC<RequestBookingModalProps> = ({
   isOpen,
   onClose,
   onSubmitted,
+  bookings = [],
 }) => {
   // Form fields
   const [name, setName] = useState('');
@@ -301,46 +305,17 @@ export const RequestBookingModal: React.FC<RequestBookingModalProps> = ({
                 <h4 className="text-xs font-bold text-teal-900 uppercase tracking-wider">
                   2. วันและเวลาที่ต้องการใช้ห้อง
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      วันที่ <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      เวลาเริ่ม <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required
-                      step={60}
-                      value={timeStart}
-                      onChange={(e) => setTimeStart(e.target.value)}
-                      className={inputCls + ' font-mono'}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      เวลาสิ้นสุด <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required
-                      step={60}
-                      value={timeEnd}
-                      onChange={(e) => setTimeEnd(e.target.value)}
-                      className={inputCls + ' font-mono'}
-                    />
-                  </div>
-                </div>
+                <ThaiDateTimeFields
+                  idPrefix="req"
+                  accent="teal"
+                  date={date}
+                  timeStart={timeStart}
+                  timeEnd={timeEnd}
+                  onDateChange={setDate}
+                  onTimeStartChange={setTimeStart}
+                  onTimeEndChange={setTimeEnd}
+                  bookings={bookings}
+                />
 
                 {/* Availability banner */}
                 <AvailabilityBanner avail={avail} timeValid={timeValid} />

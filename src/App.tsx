@@ -594,6 +594,7 @@ export default function App() {
       <RequestBookingModal
         isOpen={isRequestOpen}
         onClose={() => setIsRequestOpen(false)}
+        bookings={bookings}
         onSubmitted={() => {
           loadData(true);
           if (isAuthed) refreshPending();
@@ -605,6 +606,7 @@ export default function App() {
         onClose={() => setIsRequestsPanelOpen(false)}
         onChanged={handleRequestsChanged}
         onToast={showToast}
+        bookings={bookings}
       />
 
       <ActionAuthModal
@@ -617,6 +619,7 @@ export default function App() {
         booking={actionTargetBooking}
         onConfirmCancelOrDelete={handleConfirmCancelOrDelete}
         onConfirmEdit={handleConfirmEdit}
+        bookings={bookings}
       />
 
       <DayDetailModal
